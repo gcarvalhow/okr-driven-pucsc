@@ -1,7 +1,5 @@
 # OKR Driven Execution
 
----
-
 ## 1. O Problema
 
 Organizações modernas adotam OKRs como modelo de gestão estratégica, mas falham na execução. Definem objetivos vagos, não acompanham o progresso com disciplina, não dão visibilidade clara sobre o andamento das metas e não deixam explícito quem é responsável por cada entrega. Ao final do ciclo, quase não há análise para entender erros e acertos. O resultado é previsível: a metodologia vira discurso e o planejamento estratégico perde força.
@@ -16,8 +14,6 @@ Uma plataforma focada em:
 5. Insights acionáveis: Por que succeeded/failed? Aprendizado contínuo
 
 Diferencial: Força o comprometimento real, não apenas registra OKRs no ar.
-
----
 
 ## 2. REQUISITOS FUNCIONAIS (RF)
 
@@ -43,8 +39,6 @@ Diferencial: Força o comprometimento real, não apenas registra OKRs no ar.
 - RF-11: Controle de acesso (Admin, Manager, Colaborador)
 - RF-12: Auditoria (log de mudanças, histórico imutável)
 
----
-
 ## 3. REQUISITOS NÃO-FUNCIONAIS (RNF)
 
 - RNF-01: Performance - Dashboard carrega < 2s, Check-in salva < 1s
@@ -54,8 +48,6 @@ Diferencial: Força o comprometimento real, não apenas registra OKRs no ar.
 - RNF-05: Segurança - JWT/OAuth2, bcrypt, HTTPS, rate limiting
 - RNF-06: Manutenibilidade - Código documentado, testes 70%+ backend, estrutura modular
 - RNF-07: Conformidade - LGPD, auditoria completa
-
----
 
 ## 4. TECNOLOGIAS E JUSTIFICATIVAS
 
@@ -73,5 +65,3 @@ Processa eventos de forma assíncrona (check-in reportado → trigger alert/repo
 
 **Infraestrutura: Docker + Terraform**
 Docker containeriza toda a stack (API .NET, Next.js, PostgreSQL, MongoDB, RabbitMQ). Terraform controla toda a infraestrutura como código, permitindo deploy reproduzível em qualquer cloud (AWS, Azure, GCP).
-
----
