@@ -1,0 +1,24 @@
+@startuml c4_l1_contexto_perfis
+!include <C4/C4_Context>
+
+title OKR Driven Execution — C4 Nível 1: Contexto e Perfis de Usuário
+
+' ─── Atores ────────────────────────────────────────────────────────────────
+
+Person(admin, "Admin", "Configura ciclos, gerencia usuários\ne acessa todos os dados da plataforma.")
+
+Person(manager, "Manager", "Cria e acompanha OKRs do seu time.\nEncerra ciclos e gera relatórios.")
+
+Person(colaborador, "Colaborador", "Realiza check-ins periódicos\nnos Key Results pelos quais é responsável.")
+
+' ─── Sistema principal ─────────────────────────────────────────────────────
+
+System(okr_system, "OKR Driven Execution", "Plataforma de gestão estratégica\nbaseada na metodologia OKR.")
+
+' ─── Relacionamentos ───────────────────────────────────────────────────────
+
+Rel(admin, okr_system, "Configura ciclos, gerencia\nusuários e visualiza relatórios", "HTTPS")
+Rel(manager, okr_system, "Cria OKRs, acompanha times\ne encerra ciclos", "HTTPS")
+Rel(colaborador, okr_system, "Realiza check-ins e\nvisualiza seu progresso", "HTTPS")
+
+@enduml
