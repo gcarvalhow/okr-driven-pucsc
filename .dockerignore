@@ -1,0 +1,14 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/node_modules/
+**/.git/
+**/docs/
+**/*.md
+**/.env
+**/.env.*
+!.env.example
+**/logs/
+*.sln.DotSettings.user
+*.csproj.user
