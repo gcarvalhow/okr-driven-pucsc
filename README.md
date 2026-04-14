@@ -6,11 +6,31 @@ API backend da plataforma **OKR Driven**, construída como um **Monólito Modula
 
 ## Arquitetura
 
-O backend segue **DDD + CQRS + Event-Driven Architecture** organizado em módulos independentes:
+O backend é construído como um **Monólito Modular orientado a eventos**, combinando DDD, CQRS e Event Sourcing. Cada decisão arquitetural tem uma razão direta ligada aos requisitos do produto.
 
-- **Escrita**: comandos processados por handlers que carregam agregados do Event Store (PostgreSQL), invocam comportamento de domínio e persistem eventos imutáveis
-- **Leitura**: eventos publicados no RabbitMQ são consumidos por Projection Handlers que atualizam Read Models no MongoDB — otimizados para consultas rápidas de dashboard
-- **Assíncrono**: alertas, relatórios e auditoria são processados por handlers independentes via RabbitMQ, sem bloquear o fluxo principal
+### Domain-Driven Design (DDD)
+
+O domínio de OKRs carrega regras de negócio complexas, interdependentes e com invariantes rígidas. Modelar essas regras diretamente nos Agregados garante que a consistência seja aplicada no único lugar onde isso faz sentido: no domínio. Handlers e validações de infraestrutura não tomam decisões de negócio. A linguagem ubíqua — OKR, KeyResult, CheckIn, Cycle — é refletida diretamente no código, eliminando a tradução entre o modelo conceitual e a implementação.
+
+### CQRS — separação de escrita e leitura
+
+Modelos de escrita são normalizados, transacionais e orientados a consistência. Modelos de leitura são desnormalizados, otimizados para consulta e tolerantes a consistência eventual. Tratar os dois com o mesmo modelo é um compromisso que prejudica os dois lados. CQRS formaliza essa separação: comandos percorrem o caminho de escrita (Aggregate → EventStore → PostgreSQL), queries percorrem o caminho de leitura (Read Models → MongoDB). Cada lado evolui, escala e é otimizado de forma independente.
+
+### Event Sourcing
+
+O estado de um agregado não é armazenado diretamente — é derivado de uma sequência imutável de eventos. Cada mudança de estado é um fato registrado, não uma sobrescrita. Isso entrega auditoria completa como consequência natural da arquitetura, elimina soft-deletes, e permite reconstituir qualquer agregado em qualquer ponto do tempo. As projeções MongoDB podem ser descartadas e reconstruídas a qualquer momento a partir dos eventos originais, sem perda de informação.
+
+### PostgreSQL + MongoDB
+
+PostgreSQL é o banco de escrita canônico. Garantia ACID assegura que cada evento seja persistido com integridade total — a sequência de eventos nunca é corrompida. MongoDB armazena projeções desnormalizadas por módulo, otimizadas exclusivamente para leitura. A separação física dos bancos garante isolamento completo entre os dois caminhos — operações de escrita não competem com consultas de leitura por recursos.
+
+### RabbitMQ + MassTransit
+
+Após cada evento ser persistido no PostgreSQL, ele é publicado no RabbitMQ. Handlers independentes o consomem assincronamente — projeções, alertas, auditoria. O fluxo principal de escrita não aguarda nenhum desse processamento. Cada consumer falha, faz retry e escala de forma completamente independente dos demais, sem acoplamento entre eles.
+
+### Hangfire
+
+Jobs periódicos e tarefas diferidas são gerenciados pelo Hangfire com persistência no PostgreSQL. Oferece retry automático, execução agendada e interface de monitoramento integrada ao .NET, sem introduzir nova dependência de infraestrutura.
 
 ### Diagrama
 
@@ -131,13 +151,19 @@ Cada módulo segue a mesma anatomia interna obrigatória:
 | Categoria | Tecnologia |
 |---|---|
 | Runtime | .NET 8 / ASP.NET Core |
-| Event Store | PostgreSQL + EF Core (Npgsql) |
-| Read Models | MongoDB |
-| Message Broker | RabbitMQ via MassTransit |
-| Agendamento de Jobs | Hangfire |
-| Autenticação | JWT + bcrypt |
+| ORM e Event Store | Entity Framework Core, Npgsql |
+| CQRS e Mediação | MediatR |
+| Mensageria | MassTransit, RabbitMQ |
+| Validação | FluentValidation |
+| Agendamento | Hangfire |
+| Banco de escrita | PostgreSQL |
+| Banco de leitura | MongoDB |
+| Autenticação | JWT, bcrypt |
+| Logging | Serilog |
+| Monitoramento | New Relic |
+| Qualidade | SonarQube |
 | Containers | Docker |
-| Infra como Código | Terraform |
+| Infra como código | Terraform |
 
 ---
 
