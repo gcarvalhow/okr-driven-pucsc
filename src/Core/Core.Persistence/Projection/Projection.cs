@@ -1,4 +1,5 @@
 using Core.Domain.Primitives.Interfaces;
+using Core.Persistence.Projection.Abstractions;
 using MongoDB.Driver;
 
 namespace Core.Persistence.Projection;

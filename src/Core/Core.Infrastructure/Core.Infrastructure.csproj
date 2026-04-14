@@ -6,10 +6,13 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="MassTransit" Version="9.0.1" />
-    <PackageReference Include="MassTransit.RabbitMQ" Version="9.0.1" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="MassTransit" Version="8.5.7" />
+		<PackageReference Include="MassTransit.Hangfire" Version="8.5.7" />
+		<PackageReference Include="MassTransit.RabbitMQ" Version="8.5.7" />
+		<PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.1" />
+		<PackageReference Include="Scrutor" Version="6.1.0" />
+	</ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Core.Application\Core.Application.csproj" />

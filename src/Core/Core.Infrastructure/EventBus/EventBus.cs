@@ -1,4 +1,4 @@
-using Core.Application.EventBus;
+﻿using Core.Application.EventBus;
 using Core.Application.ServiceLifetimes;
 using Core.Domain.Events.Interfaces;
 using MassTransit;

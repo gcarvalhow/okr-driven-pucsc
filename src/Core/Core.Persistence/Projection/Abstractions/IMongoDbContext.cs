@@ -1,6 +1,6 @@
 using MongoDB.Driver;
 
-namespace Core.Persistence.Projection;
+namespace Core.Persistence.Projection.Abstractions;
 
 public interface IMongoDbContext
 {
