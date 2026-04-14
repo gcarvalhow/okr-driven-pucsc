@@ -2,8 +2,7 @@
 # Project Specific
 ###############################################################################
 
-# Documentation (local only)
-docs/GaliLearn
+.claude/
 
 # Backup files
 *.backup

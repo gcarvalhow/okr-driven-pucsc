@@ -1,67 +1,252 @@
-# OKR Driven Execution
+# OKR Driven — Backend
 
-## 1. O Problema
+API backend da plataforma **OKR Driven**, construída como um **Monólito Modular orientado a eventos** com **DDD**, **CQRS** e **Event Sourcing**.
 
-Organizações modernas adotam OKRs como modelo de gestão estratégica, mas falham na execução. Definem objetivos vagos, não acompanham o progresso com disciplina, não dão visibilidade clara sobre o andamento das metas e não deixam explícito quem é responsável por cada entrega. Ao final do ciclo, quase não há análise para entender erros e acertos. O resultado é previsível: a metodologia vira discurso e o planejamento estratégico perde força.
+---
 
-## 2. A Solução: OKR Driven Execution
+## Stack
 
-Uma plataforma focada em:
-1. Clareza: OKRs estruturados, sem ambiguidade
-2. Visibilidade: Dashboard compartilhado (todos veem tudo)
-3. Accountability: Timeline clara, "quem faz o quê até quando"
-4. Transparência enforced: Check-ins obrigatórios
-5. Insights acionáveis: Por que succeeded/failed? Aprendizado contínuo
+| Categoria | Tecnologia |
+|---|---|
+| Runtime | .NET 8 / ASP.NET Core |
+| Event Store | PostgreSQL + EF Core (Npgsql) |
+| Read Models | MongoDB |
+| Message Broker | RabbitMQ via MassTransit |
+| Agendamento de Jobs | Hangfire |
+| Autenticação | JWT + bcrypt |
+| Email | Brevo (SMTP relay) |
+| Logging | Serilog |
+| Monitoramento | New Relic |
+| Qualidade de Código | SonarQube |
+| Containers | Docker |
+| Infra como Código | Terraform |
 
-Diferencial: Força o comprometimento real, não apenas registra OKRs no ar.
+---
 
-## 2. REQUISITOS FUNCIONAIS (RF)
+## Arquitetura
 
-### 2.1 Gestão de OKRs
-- RF-01: Criar OKRs estruturados (Objetivo + Key Results com métrica clara, período definido, responsável)
-- RF-02: Editar OKRs em fase de planejamento (bloqueado após ciclo iniciado)
-- RF-03: Listar OKRs com filtradores (período, responsável, departamento, status)
+O backend segue **DDD + CQRS + Event-Driven Architecture** organizado em módulos independentes:
 
-### 2.2 Rastreamento de Progresso
-- RF-04: Check-ins periódicos obrigatórios (progresso + comentário obrigatório se regressar)
-- RF-05: Timeline visual de progresso com marcadores (On-track / At-risk / Off-track)
-- RF-06: Sistema de alertas (KR em risco por 2+ semanas, 0% progresso no mês)
+- **Escrita**: comandos processados por handlers que carregam agregados do Event Store (PostgreSQL), invocam comportamento de domínio e persistem eventos imutáveis
+- **Leitura**: eventos publicados no RabbitMQ são consumidos por Projection Handlers que atualizam Read Models no MongoDB — otimizados para consultas rápidas de dashboard
+- **Assíncrono**: alertas, relatórios e auditoria são processados por handlers independentes via RabbitMQ, sem bloquear o fluxo principal
 
-### 2.3 Dashboard e Transparência
-- RF-07: Dashboard executivo (resumo on-track/at-risk/failed, health visual, filtros)
-- RF-08: Vista por Responsável (meus OKRs, histórico de check-ins, deadline visual)
+### Diagrama
 
-### 2.4 Ciclo Encerrado
-- RF-09: Finalizar OKR ciclo (resultado final %, status automático)
-- RF-10: Relatório de ciclo (taxa de sucesso, departamentos, insights)
+![Event-Driven Architecture](docs/diagrams/c4_level3.png)
 
-### 2.5 Segurança e Controle
-- RF-11: Controle de acesso (Admin, Manager, Colaborador)
-- RF-12: Auditoria (log de mudanças, histórico imutável)
+### Separação de responsabilidades por camada
 
-## 3. REQUISITOS NÃO-FUNCIONAIS (RNF)
+```
+Domain         → Agregados, Eventos, Enumerações, Projection Models
+Shared         → Commands, Email Commands, Response DTOs
+Application    → Command Handlers, Validators, Projection Handlers, Job Handlers
+Persistence    → DbContext, EF Configurations, MongoDB Projections, Migrations
+Infrastructure → Module Installer, Service Installers, Application Services
+Web            → Endpoints, Request DTOs, Routes, MassTransit Consumers
+```
 
-- RNF-01: Performance - Dashboard carrega < 2s, Check-in salva < 1s
-- RNF-02: Escalabilidade - 5000+ usuários simultâneos, multi-tenant ready
-- RNF-03: Disponibilidade - 99% uptime, backup automático diário
-- RNF-04: Usabilidade - Interface intuitiva, check-in < 2 minutos
-- RNF-05: Segurança - JWT/OAuth2, bcrypt, HTTPS, rate limiting
-- RNF-06: Manutenibilidade - Código documentado, testes 70%+ backend, estrutura modular
-- RNF-07: Conformidade - LGPD, auditoria completa
+---
 
-## 4. TECNOLOGIAS E JUSTIFICATIVAS
+## Estrutura de Módulos
 
-**Frontend: Next.js + TypeScript**
-Next.js oferece SSR/SSG para performance otimizada do dashboard, roteamento integrado, deploy facilitado. TypeScript garante segurança de tipo em componentes críticos.
+```
+src/
+├── Core/                              # Infraestrutura cross-cutting compartilhada
+│   ├── Core.Domain/                   # Primitives: Entity, AggregateRoot, IDomainEvent
+│   ├── Core.Application/              # ApplicationService, ICommandHandler, IEventHandler
+│   ├── Core.Persistence/              # EventStore, Projection, MongoDbContext
+│   ├── Core.Infrastructure/           # ServiceInstaller base, Scrutor extensions
+│   └── Core.Shared/                   # IdentifierResponse, Result, erros base
+│
+├── Modules/
+│   ├── Identity/                      # Autenticação, usuários, convites, perfis
+│   │   ├── Identity.Domain/
+│   │   ├── Identity.Application/
+│   │   ├── Identity.Infrastructure/
+│   │   ├── Identity.Persistence/
+│   │   └── Identity.Shared/
+│   │
+│   ├── Organization/                  # Times, departamentos, estrutura organizacional
+│   │   ├── Organization.Domain/
+│   │   ├── Organization.Application/
+│   │   ├── Organization.Infrastructure/
+│   │   ├── Organization.Persistence/
+│   │   └── Organization.Shared/
+│   │
+│   ├── OKR/                           # OKRs anuais, trimestrais, Key Results, check-ins
+│   │   ├── OKR.Domain/
+│   │   ├── OKR.Application/
+│   │   ├── OKR.Infrastructure/
+│   │   ├── OKR.Persistence/
+│   │   └── OKR.Shared/
+│   │
+│   └── Dashboard/                     # Projeções de dashboard, status de ciclo, relatórios
+│       ├── Dashboard.Domain/
+│       ├── Dashboard.Application/
+│       ├── Dashboard.Infrastructure/
+│       ├── Dashboard.Persistence/
+│       └── Dashboard.Shared/
+│
+└── Web/                               # ASP.NET Core host — entry point
+    └── Endpoints/
+        └── Modules/
+            ├── Identity/
+            ├── Organization/
+            ├── OKR/
+            └── Dashboard/
+```
 
-**Backend: .NET (C#) + Event Driven Architecture**
-.NET/C# é robusto e escalável. A Event Driven Architecture (EDA) permite processamento assíncrono de check-ins, alertas e relatórios sem bloquear a API. Eventos publicados no RabbitMQ garantem desacoplamento entre serviços.
+### Convenção de módulo
 
-**Banco de Dados: PostgreSQL + MongoDB (Event Sourcing + CQRS)**
-PostgreSQL é o banco de escrita: armazena eventos e snapshots do event sourcing com consistência ACID. MongoDB é o banco de leitura: armazena projeções otimizadas para consultas rápidas e agregações. Quando eventos ocorrem no PostgreSQL, o MongoDB é atualizado de forma assíncrona via event handlers.
+Cada módulo segue a mesma anatomia interna obrigatória:
 
-**Message Queue: RabbitMQ**
-Processa eventos de forma assíncrona (check-in reportado → trigger alert/report generation). Desacopla serviços, aumenta resiliência.
+```
+{Module}.Domain/
+├── Aggregates/             # AggregateRoot — estado e comportamento de domínio
+├── Events/
+│   └── DomainEvents.cs     # Todos os eventos do módulo em um único arquivo
+├── Enumerations/           # SmartEnum — nunca enum nativo do C#
+└── Projections/
+    └── ProjectionModel.cs  # Read models para MongoDB
 
-**Infraestrutura: Docker + Terraform**
-Docker containeriza toda a stack (API .NET, Next.js, PostgreSQL, MongoDB, RabbitMQ). Terraform controla toda a infraestrutura como código, permitindo deploy reproduzível em qualquer cloud (AWS, Azure, GCP).
+{Module}.Shared/
+├── Commands/               # sealed record : ICommand / ICommand<TResponse>
+├── Emails/                 # Email delivery commands (primitivos — Hangfire)
+└── Response/               # sealed record Response DTOs
+
+{Module}.Application/
+├── Services/               # I{Module}ApplicationService (marker interface)
+├── DependencyInjection/    # AddEventInteractors() — registro manual de Projection Handlers
+└── UseCases/
+    ├── Commands/           # ICommandHandler<TCommand>
+    ├── Validators/         # AbstractValidator<TCommand>
+    ├── Events/             # Projection Handlers — atualizam MongoDB
+    ├── Emails/             # Email Handlers — enviados via Hangfire
+    └── Jobs/               # Job command + handler no mesmo arquivo
+
+{Module}.Persistence/
+├── Context/                # {Module}DbContext + {Module}ProjectionDbContext
+├── Configurations/         # StoreEventConfiguration<T> + SnapshotConfiguration<T>
+├── Projection/             # I{Module}Projection<T> + {Module}Projection<T>
+├── Constants/
+│   └── Schemas.cs          # Schema PostgreSQL do módulo
+└── Migrations/
+
+{Module}.Infrastructure/
+├── {Module}ModuleInstaller.cs            # Entrada do módulo — orquestra todos os installers
+├── ServiceInstallers/
+│   ├── ApplicationServiceInstaller.cs    # MediatR, FluentValidation, AutoMapper
+│   ├── InfrastructureServiceInstaller.cs # IEventBus, opções de configuração
+│   └── PersistenceServiceInstaller.cs    # EF Core, MongoDB, open generics
+└── Services/
+    └── {Module}ApplicationService.cs     # Wrapper vazio — vincula DbContext ao módulo
+```
+
+---
+
+## Infraestrutura
+
+| Serviço | Propósito | Porta local |
+|---|---|---|
+| PostgreSQL | Event Store — escrita transacional e snapshots | 5432 |
+| MongoDB | Read Models — projeções otimizadas por módulo | 27017 |
+| RabbitMQ | Message Broker — eventos de domínio assíncronos | 5672 |
+| Hangfire | Job Scheduler — emails, alertas, tarefas periódicas | — |
+| New Relic | APM — monitoramento de performance e rastreamento de erros | — |
+
+Toda a infraestrutura é containerizada via Docker e definida como código via Terraform, garantindo ambientes reproduzíveis em qualquer cloud (AWS, Azure, GCP).
+
+---
+
+## Qualidade e Testes
+
+- Pipeline MediatR com `ValidationPipelineBehavior` e `RequestLoggingPipelineBehavior` em todas as requisições
+- Handlers críticos cobertos por testes de unidade e integração
+- Análise estática contínua via SonarQube
+- Logging estruturado via Serilog
+
+---
+
+## Auditoria
+
+Toda operação gera eventos imutáveis persistidos no PostgreSQL via Event Sourcing. Não há soft-delete — a trilha de eventos é a fonte definitiva de auditoria, preservando decisões, mudanças e resultados sem perda de histórico. Coberto por:
+
+- Criação e edição de OKRs e Key Results
+- Check-ins de progresso, comentários e contestações
+- Encerramento de ciclo com classificação final
+- Ações administrativas de ciclo
+
+---
+
+## Executar o Projeto Localmente
+
+### 1. Subir a infraestrutura
+
+```bash
+docker-compose -f Docker/docker-compose.Infrastructure.Development.yaml up -d
+```
+
+Os serviços estarão disponíveis em:
+- **PostgreSQL:** `localhost:5432`
+- **MongoDB:** `localhost:27017`
+- **RabbitMQ:** `localhost:5672`
+
+### 2. Configurar credenciais
+
+```bash
+cp .env.example .env.local
+```
+
+Para desenvolvimento local, os valores padrão já funcionam sem alteração.
+
+### 3. Aplicar migrations
+
+```bash
+# Adicionar nova migration
+dotnet ef migrations add <MigrationName> \
+  --project src/Modules/<Module>/<Module>.Persistence \
+  --startup-project src/Web \
+  --context <Module>DbContext
+
+# Aplicar migrations ao banco
+dotnet ef database update \
+  --project src/Modules/<Module>/<Module>.Persistence \
+  --startup-project src/Web \
+  --context <Module>DbContext
+
+# Contextos disponíveis:
+#   Identity     → IdentityDbContext
+#   Organization → OrganizationDbContext
+#   OKR          → OKRDbContext
+#   Dashboard    → DashboardDbContext
+```
+
+### 4. Buildar e executar via Docker
+
+```bash
+# Build da imagem
+docker build --no-cache -t okrdriven-api .
+
+# Executar a API
+docker run --rm -p 5258:8080 \
+  --network okrdriven-dev \
+  --env-file .env.local \
+  okrdriven-api
+```
+
+- **API:** `http://localhost:5258/api`
+- **Swagger:** `http://localhost:5258/api/swagger`
+
+### Executar via .NET CLI
+
+```bash
+# Build da solution
+dotnet build OKRDriven.sln
+
+# Executar o projeto Web
+dotnet run --project src/Web/Web.csproj
+
+# Executar todos os testes
+dotnet test OKRDriven.sln
+```
