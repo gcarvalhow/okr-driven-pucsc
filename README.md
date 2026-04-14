@@ -4,25 +4,6 @@ API backend da plataforma **OKR Driven**, construída como um **Monólito Modula
 
 ---
 
-## Stack
-
-| Categoria | Tecnologia |
-|---|---|
-| Runtime | .NET 8 / ASP.NET Core |
-| Event Store | PostgreSQL + EF Core (Npgsql) |
-| Read Models | MongoDB |
-| Message Broker | RabbitMQ via MassTransit |
-| Agendamento de Jobs | Hangfire |
-| Autenticação | JWT + bcrypt |
-| Email | Brevo (SMTP relay) |
-| Logging | Serilog |
-| Monitoramento | New Relic |
-| Qualidade de Código | SonarQube |
-| Containers | Docker |
-| Infra como Código | Terraform |
-
----
-
 ## Arquitetura
 
 O backend segue **DDD + CQRS + Event-Driven Architecture** organizado em módulos independentes:
@@ -142,6 +123,21 @@ Cada módulo segue a mesma anatomia interna obrigatória:
 └── Services/
     └── {Module}ApplicationService.cs     # Wrapper vazio — vincula DbContext ao módulo
 ```
+
+---
+
+## Stack
+
+| Categoria | Tecnologia |
+|---|---|
+| Runtime | .NET 8 / ASP.NET Core |
+| Event Store | PostgreSQL + EF Core (Npgsql) |
+| Read Models | MongoDB |
+| Message Broker | RabbitMQ via MassTransit |
+| Agendamento de Jobs | Hangfire |
+| Autenticação | JWT + bcrypt |
+| Containers | Docker |
+| Infra como Código | Terraform |
 
 ---
 
